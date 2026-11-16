@@ -43,6 +43,10 @@ st.sidebar.header("🔍 Filtros")
 anios = ["Todos"] + sorted(df["AÑO"].dropna().unique().tolist())
 anio_sel = st.sidebar.selectbox("Selecciona el Año:", anios)
 
+# Filtro de linea
+lineas = ["Todos"] + sorted(df["LINEA"].dropna().unique().tolist())
+linea_sel = st.sidebar.selectbox("Selecciona la linea", lineas)
+
 # Filtro de Mes (orden cronológico)
 meses_en_datos = [m for m in ORDEN_MESES if m in df["MES"].unique()]
 meses = ["Todos"] + meses_en_datos
@@ -58,6 +62,8 @@ vendedor_sel = st.sidebar.selectbox("Selecciona el Vendedor:", vendedores)
 df_filtrado = df.copy()
 if anio_sel != "Todos":
     df_filtrado = df_filtrado[df_filtrado["AÑO"] == anio_sel]
+if linea_sel != "Todos":
+    df_filtrado = df_filtrado[df_filtrado["LINEA"] == linea_sel]
 if mes_sel != "Todos":
     df_filtrado = df_filtrado[df_filtrado["MES"] == mes_sel]
 if vendedor_sel != "Todos":
@@ -78,6 +84,30 @@ col3.metric("Clientes Atendidos", f"{clientes_unicos:,.0f}")
 col4.metric("Productos Distintos", f"{productos_unicos:,.0f}")
 
 st.markdown("---")
+
+# Gráfico 1: Top 10 Productos Más Vendidos
+
+st.subheader("📦 Top 10 Productos Más Vendidos")
+top_productos = (
+    df_filtrado.groupby("PRODUCTO")["SALIDA CANTIDAD"]
+    .sum()
+    .reset_index()
+    .sort_values(by="SALIDA CANTIDAD", ascending=False)
+    .head(10)
+)
+fig_prod = px.bar(
+    top_productos,
+    x="SALIDA CANTIDAD",
+    y="PRODUCTO",
+    orientation="h",
+    text_auto=".2s",
+    color="SALIDA CANTIDAD",
+    color_continuous_scale="Teal",
+)
+fig_prod.update_layout(
+    yaxis={"categoryorder": "total ascending"}, showlegend=False
+)
+st.plotly_chart(fig_prod, use_container_width=True)
 
 # 5. Gráficos Interactivos
 col_izq, col_der = st.columns(2)
@@ -108,27 +138,27 @@ with col_izq:
 
 # Gráfico 2: Top 10 Productos Más Vendidos
 with col_der:
-    st.subheader("📦 Top 10 Productos Más Vendidos")
-    top_productos = (
-        df_filtrado.groupby("PRODUCTO")["SALIDA CANTIDAD"]
+    st.subheader("📦 Top 10 Clientes")
+    top_clientes = (
+        df_filtrado.groupby("PARTNER")["SALIDA CANTIDAD"]
         .sum()
         .reset_index()
         .sort_values(by="SALIDA CANTIDAD", ascending=False)
         .head(10)
     )
-    fig_prod = px.bar(
-        top_productos,
+    fig_cli = px.bar(
+        top_clientes,
         x="SALIDA CANTIDAD",
-        y="PRODUCTO",
+        y="PARTNER",
         orientation="h",
         text_auto=".2s",
         color="SALIDA CANTIDAD",
         color_continuous_scale="Teal",
     )
-    fig_prod.update_layout(
+    fig_cli.update_layout(
         yaxis={"categoryorder": "total ascending"}, showlegend=False
     )
-    st.plotly_chart(fig_prod, use_container_width=True)
+    st.plotly_chart(fig_cli, use_container_width=True)
 
 # Gráfico 3: Evolución de Ventas por Mes
 st.subheader("📅 Evolución de Ventas por Mes")

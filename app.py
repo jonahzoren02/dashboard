@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -15,9 +16,9 @@ st.title("📊 Tablero de Control de Ventas y Vendedores")
 
 # 2. Función para cargar datos rápido (usa caché para no leer el Excel cada vez)
 @st.cache_data
-def cargar_datos():
+def cargar_datos(archivo="ventas.xlsx", mtime=0):
     # Indicamos header=1 porque los encabezados reales están en la fila 2 del Excel
-    df = pd.read_excel("ventas.xlsx", header=1)
+    df = pd.read_excel(archivo, header=1)
 
     # Limpiamos espacios extra en los nombres de las columnas por si acaso
     df.columns = df.columns.str.strip()
@@ -32,9 +33,11 @@ def cargar_datos():
     return df
 
 
-# Cargamos los datos con un mensaje de espera
+# Cargamos los datos con un mensaje de espera (detectando si el Excel fue modificado)
 with st.spinner("Cargando los 94,000 registros..."):
-    df = cargar_datos()
+    archivo_ventas = "ventas.xlsx"
+    mtime = os.path.getmtime(archivo_ventas) if os.path.exists(archivo_ventas) else 0
+    df = cargar_datos(archivo_ventas, mtime)
 
 # 3. Barra lateral de Filtros
 st.sidebar.header("🔍 Filtros")
@@ -44,7 +47,7 @@ anios = ["Todos"] + sorted(df["AÑO"].dropna().unique().tolist())
 anio_sel = st.sidebar.selectbox("Selecciona el Año:", anios)
 
 # Filtro de linea
-lineas = ["Todos"] + sorted(df["LINEA"].dropna().unique().tolist())
+lineas = ["Todos"] + sorted(df["LINEA"].dropna().astype(str).unique().tolist())
 linea_sel = st.sidebar.selectbox("Selecciona la linea", lineas)
 
 # Filtro de Mes (orden cronológico)

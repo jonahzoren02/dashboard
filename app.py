@@ -39,38 +39,40 @@ with st.spinner("Cargando los 94,000 registros..."):
     mtime = os.path.getmtime(archivo_ventas) if os.path.exists(archivo_ventas) else 0
     df = cargar_datos(archivo_ventas, mtime)
 
-# 3. Barra lateral de Filtros
+# 3. Barra lateral de Filtros dinámicos (Año -> Línea -> Vendedor -> Mes)
 st.sidebar.header("🔍 Filtros")
 
-# Filtro de Año
+# Iniciamos con el DataFrame completo para ir filtrando secuencialmente
+df_filtrado = df.copy()
+
+# 1. Filtro de Año
 anios = ["Todos"] + sorted(df["AÑO"].dropna().unique().tolist())
 anio_sel = st.sidebar.selectbox("Selecciona el Año:", anios)
-
-# Filtro de linea
-lineas = ["Todos"] + sorted(df["LINEA"].dropna().astype(str).unique().tolist())
-linea_sel = st.sidebar.selectbox("Selecciona la linea", lineas)
-
-# Filtro de Mes (orden cronológico)
-meses_en_datos = [m for m in ORDEN_MESES if m in df["MES"].unique()]
-meses = ["Todos"] + meses_en_datos
-mes_sel = st.sidebar.selectbox("Selecciona el Mes:", meses)
-
-# Filtro de Vendedor
-vendedores = ["Todos"] + sorted(
-    df["VENDEDOR"].dropna().astype(str).unique().tolist()
-)
-vendedor_sel = st.sidebar.selectbox("Selecciona el Vendedor:", vendedores)
-
-# Aplicamos los filtros al dataframe
-df_filtrado = df.copy()
 if anio_sel != "Todos":
     df_filtrado = df_filtrado[df_filtrado["AÑO"] == anio_sel]
+
+# 2. Filtro de Línea (solo líneas con ventas en el año seleccionado)
+lineas = ["Todos"] + sorted(
+    df_filtrado["LINEA"].dropna().astype(str).unique().tolist()
+)
+linea_sel = st.sidebar.selectbox("Selecciona la Línea:", lineas)
 if linea_sel != "Todos":
     df_filtrado = df_filtrado[df_filtrado["LINEA"] == linea_sel]
-if mes_sel != "Todos":
-    df_filtrado = df_filtrado[df_filtrado["MES"] == mes_sel]
+
+# 3. Filtro de Vendedor (solo vendedores de la línea y año seleccionados)
+vendedores = ["Todos"] + sorted(
+    df_filtrado["VENDEDOR"].dropna().astype(str).unique().tolist()
+)
+vendedor_sel = st.sidebar.selectbox("Selecciona el Vendedor:", vendedores)
 if vendedor_sel != "Todos":
     df_filtrado = df_filtrado[df_filtrado["VENDEDOR"] == vendedor_sel]
+
+# 4. Filtro de Mes (orden cronológico y solo meses con datos filtrados)
+meses_en_datos = [m for m in ORDEN_MESES if m in df_filtrado["MES"].unique()]
+meses = ["Todos"] + meses_en_datos
+mes_sel = st.sidebar.selectbox("Selecciona el Mes:", meses)
+if mes_sel != "Todos":
+    df_filtrado = df_filtrado[df_filtrado["MES"] == mes_sel]
 
 # 4. Tarjetas de KPI Principales
 st.markdown("### 📈 Indicadores Clave (KPI)")

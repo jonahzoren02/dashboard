@@ -5,6 +5,15 @@ import plotly.graph_objects as go
 import streamlit as st
 from dataPrincipal import enviar_data
 
+def imprimir_data(*args):
+    n = 1
+    print("-------INFORMACION-------")
+    for ele in args:
+        print("###ELemento ", n)
+        print(ele)
+        print("#############")
+        n += 1
+
 # Configuración de página
 st.set_page_config(
     page_title="LABET - Panel de gestión comercial",
@@ -346,7 +355,7 @@ with c_anio:
 df_anio = df_filtrado_unidad[df_filtrado_unidad["AÑO"] == anio_sel]
 
 # Datos del año anterior para calcular variaciones (%)
-anio_anterior = 2025
+anio_anterior = "2025"
 df_anio_ant = df_filtrado_unidad[df_filtrado_unidad["AÑO"] == anio_anterior]
 
 # Métricas Calculadas - Cantidad
@@ -357,7 +366,7 @@ dif_volumen = total_volumen - total_volumen_ant
 # Métrica Calculadas - Ventas
 total_venta = df_anio["RV_TOTAL"].sum()
 total_venta_ant = df_anio_ant["RV_TOTAL"].sum() if not df_anio_ant.empty else 0
-dif_venta = total_venta_ant - total_volumen_ant
+dif_venta = total_venta - total_venta_ant
 
 # Clientes activos en el período
 clientes_activos = df_anio["PARTNER"].nunique()
@@ -369,7 +378,7 @@ with kpi_c1:
     st.metric(
         "Venta total anual",
         f"S/ {total_venta:,.0f}",
-        delta= f"S/ {dif_volumen:,.0f}",
+        delta= f"S/ {dif_venta:,.0f}",
         # delta_arrow= "down",
         icon= "💸",
         border= True,
@@ -381,7 +390,7 @@ with kpi_c2:
     st.metric(
         "Cantidad total anual",
         f"{total_volumen:,.0f} Und",
-        delta= dif_venta,
+        delta= dif_volumen,
         # delta_arrow= "down",
         icon= "🚀",
         border= True,

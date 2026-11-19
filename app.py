@@ -242,7 +242,7 @@ if "unidad_negocio" not in st.session_state:
     st.session_state["unidad_negocio"] = "Consolidado"
 
 # -------------------------------------------------------------
-# 3. ENCABEZADO SUPERIOR OSCURO (BANNER LABET)
+# ENCABEZADO SUPERIOR OSCURO (BANNER LABET)
 # -------------------------------------------------------------
 st.markdown(
     """
@@ -349,9 +349,12 @@ df_anio = df_filtrado_unidad[df_filtrado_unidad["AÑO"] == anio_sel]
 anio_anterior = 2025
 df_anio_ant = df_filtrado_unidad[df_filtrado_unidad["AÑO"] == anio_anterior]
 
-# Métricas Calculadas
+# Métricas Calculadas - Cantidad
 total_volumen = df_anio["CANTIDAD"].sum()
 total_volumen_ant = df_anio_ant["CANTIDAD"].sum() if not df_anio_ant.empty else 0
+
+# Métrica Calculadas - Ventas
+total_venta = df_anio["RV_TOTAL"].sum()
 
 if total_volumen_ant > 0:
     var_vol = ((total_volumen - total_volumen_ant) / total_volumen_ant) * 100
@@ -370,28 +373,28 @@ venta_estimada_m = (total_volumen * 2.67) / 1_000_000
 kpi_c1, kpi_c2 = st.columns(2)
 
 with kpi_c1:
-    st.markdown(
-        f"""
-        <div style="margin-bottom: 20px;">
-            <div class="kpi-title">Venta neta acumulada</div>
-            <div class="kpi-value">S/ {venta_estimada_m:.2f} M</div>
-            <div class="kpi-delta-green">{texto_delta}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.metric(
+        "Venta total anual",
+        f"S/ {total_venta:,.0f}",
+        delta= 10,
+        delta_arrow= "down",
+        icon= "🔥",
+        border= True,
+        # chart_data= [4,1,5,3,8,4,9,2,4,8,2,2],
+        # chart_type= "area",
+        delta_description="vs. año anterior")
 
 with kpi_c2:
-    st.markdown(
-        """
-        <div style="margin-bottom: 20px;">
-            <div class="kpi-title">Cumplimiento de meta</div>
-            <div class="kpi-value">92%</div>
-            <div><span class="badge-meta">Meta comercial</span></div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.metric(
+        "Cantidad total anual",
+        f"{total_volumen:,.0f} Und",
+        delta= 10,
+        delta_arrow= "down",
+        icon= "🔥",
+        border= True,
+        # chart_data= [4,1,5,3,8,4,9,2,4,8,2,2],
+        # chart_type= "area",
+        delta_description="vs. año anterior")
 
 kpi_c3, kpi_c4 = st.columns(2)
 

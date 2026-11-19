@@ -352,22 +352,15 @@ df_anio_ant = df_filtrado_unidad[df_filtrado_unidad["AÑO"] == anio_anterior]
 # Métricas Calculadas - Cantidad
 total_volumen = df_anio["CANTIDAD"].sum()
 total_volumen_ant = df_anio_ant["CANTIDAD"].sum() if not df_anio_ant.empty else 0
+dif_volumen = total_volumen - total_volumen_ant
 
 # Métrica Calculadas - Ventas
 total_venta = df_anio["RV_TOTAL"].sum()
-
-if total_volumen_ant > 0:
-    var_vol = ((total_volumen - total_volumen_ant) / total_volumen_ant) * 100
-    texto_delta = f"+{var_vol:.1f}% vs. año anterior" if var_vol >= 0 else f"{var_vol:.1f}% vs. año anterior"
-else:
-    texto_delta = "+14.8% vs. año anterior"
+total_venta_ant = df_anio_ant["RV_TOTAL"].sum() if not df_anio_ant.empty else 0
+dif_venta = total_venta_ant - total_volumen_ant
 
 # Clientes activos en el período
 clientes_activos = df_anio["PARTNER"].nunique()
-
-# Venta estimada en millones de Soles (S/.) basada en el ticket promedio estimado
-# Si el dataset tuviera columna PRECIO, se multiplica directamente.
-venta_estimada_m = (total_volumen * 2.67) / 1_000_000
 
 # Cuadrícula 2x2 para las tarjetas de KPI
 kpi_c1, kpi_c2 = st.columns(2)
@@ -376,9 +369,9 @@ with kpi_c1:
     st.metric(
         "Venta total anual",
         f"S/ {total_venta:,.0f}",
-        delta= 10,
-        delta_arrow= "down",
-        icon= "🔥",
+        delta= f"S/ {dif_volumen:,.0f}",
+        # delta_arrow= "down",
+        icon= "💸",
         border= True,
         # chart_data= [4,1,5,3,8,4,9,2,4,8,2,2],
         # chart_type= "area",
@@ -388,9 +381,9 @@ with kpi_c2:
     st.metric(
         "Cantidad total anual",
         f"{total_volumen:,.0f} Und",
-        delta= 10,
-        delta_arrow= "down",
-        icon= "🔥",
+        delta= dif_venta,
+        # delta_arrow= "down",
+        icon= "🚀",
         border= True,
         # chart_data= [4,1,5,3,8,4,9,2,4,8,2,2],
         # chart_type= "area",

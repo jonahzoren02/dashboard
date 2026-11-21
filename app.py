@@ -264,7 +264,7 @@ st.markdown(
                 <div class="brand-sub">BUSINESS INTELLIGENCE</div>
             </div>
         </div>
-        <div class="demo-badge">DEMO</div>
+        <div class="demo-badge">DEMO v1</div>
     </div>
     <div class="main-title">Panel de gestión comercial</div>
     <div class="main-subtitle">Visión estratégica • Resultados • Rentabilidad</div>

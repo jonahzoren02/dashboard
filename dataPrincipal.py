@@ -141,7 +141,9 @@ def columna_despues(loc):
 
 def crear_excel():
     archivo_salida = "completo.xlsx"
-    enviar_data().to_excel(archivo_salida, index=False)
+    data = enviar_data()
+    data.to_excel(archivo_salida, index=False)
+    print((data["CONFLICTO"] == "SI").sum())
 
 def enviar_data():
 
@@ -248,5 +250,72 @@ def enviar_data():
         right_on="RV_NUMERO",
         how="left"
     )
+
+    # Agregar columna de CONFLICTO
+    df_resultado["CONFLICTO"] = np.where(df_resultado["VENDEDOR"] == df_resultado["RV_VENDEDOR"], "NO", "SI")
+
+    # Actualizar RV_VENDEDOR --> VENDEDOR ("NO REGISTRADO")
+    condicion_no_registrado = (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "NO REGISTRADO") & ~(df_resultado["RV_VENDEDOR"].isna())
+    df_resultado.loc[condicion_no_registrado, "VENDEDOR"] = df_resultado["RV_VENDEDOR"]
+    # Actualizar VENDEDOR --> RV_VENDEDOR ("")
+    condicion_en_blanco = (df_resultado["CONFLICTO"] == "SI") & (df_resultado["RV_VENDEDOR"].isna()) & ~(df_resultado["VENDEDOR"].isna())
+    df_resultado.loc[condicion_en_blanco, "RV_VENDEDOR"] = df_resultado["VENDEDOR"]
+
+    # VENDEDOR --- RV_VENDEDOR
+    # Actualizar linea Aves & Cerdos
+    # 1 --> Maria Alemán < Nicolh Boza
+    condicion_ac_1 = (df_resultado["LINEA"] == "Aves & Cerdos") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Maria Alemán") & (df_resultado["RV_VENDEDOR"] == "Nicolh Boza")
+    df_resultado.loc[condicion_ac_1, "VENDEDOR"] = df_resultado["RV_VENDEDOR"]
+    # 2 --> Felipe Morillos < Ubaldo Torreblanca
+    condicion_ac_2 = (df_resultado["LINEA"] == "Aves & Cerdos") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Felipe Morillos") & (df_resultado["RV_VENDEDOR"] == "Ubaldo Torreblanca")
+    df_resultado.loc[condicion_ac_2, "VENDEDOR"] = df_resultado["RV_VENDEDOR"]
+    # 3 --> Milagros Huaringa < Melissa Garriazo
+    condicion_ac_3 = (df_resultado["LINEA"] == "Aves & Cerdos") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Milagros Huaringa") & (df_resultado["RV_VENDEDOR"] == "Melissa Garriazo")
+    df_resultado.loc[condicion_ac_3, "VENDEDOR"] = df_resultado["RV_VENDEDOR"]
+    # 4 --> Ubaldo Torreblanca > Miguel Cabrera
+    condicion_ac_4 = (df_resultado["LINEA"] == "Aves & Cerdos") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Ubaldo Torreblanca") & (df_resultado["RV_VENDEDOR"] == "Miguel Cabrera")
+    df_resultado.loc[condicion_ac_4, "RV_VENDEDOR"] = df_resultado["VENDEDOR"]
+    # 5 --> Melissa Garriazo > all
+    condicion_ac_5 = (df_resultado["LINEA"] == "Aves & Cerdos") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Melissa Garriazo") & ~(df_resultado["RV_VENDEDOR"] == "Melissa Garriazo")
+    df_resultado.loc[condicion_ac_5, "RV_VENDEDOR"] = df_resultado["VENDEDOR"]
+    # 6 --> Milagros Huaringa < Andrea Huauya
+    condicion_ac_6 = (df_resultado["LINEA"] == "Aves & Cerdos") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Milagros Huaringa") & (df_resultado["RV_VENDEDOR"] == "Andrea Huauya")
+    df_resultado.loc[condicion_ac_6, "VENDEDOR"] = df_resultado["RV_VENDEDOR"]
+
+    # Actualizar linea Ganadería
+    # 1 --> Antenor Culqui > all
+    condicion_ganaderia_1 = (df_resultado["LINEA"] == "Ganadería") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Antenor Culqui") & ~(df_resultado["RV_VENDEDOR"] == "Antenor Culqui")
+    df_resultado.loc[condicion_ganaderia_1, "RV_VENDEDOR"] = df_resultado["VENDEDOR"]
+
+    # Actualizar linea Mascotas
+    # 1 --> Eglys Bermudez < Karla Solano
+    condicion_mascota_1 = (df_resultado["LINEA"] == "Mascotas") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Eglys Bermudez") & (df_resultado["RV_VENDEDOR"] == "Karla Solano")
+    df_resultado.loc[condicion_mascota_1, "VENDEDOR"] = df_resultado["RV_VENDEDOR"]
+    # 2 --> Eglys Bermudez > Nimia Quispe
+    condicion_mascota_2 = (df_resultado["LINEA"] == "Mascotas") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Eglys Bermudez") & (df_resultado["RV_VENDEDOR"] == "Nimia Quispe")
+    df_resultado.loc[condicion_mascota_2, "RV_VENDEDOR"] = df_resultado["VENDEDOR"]
+    # 3 --> Karla Solano > Jacky Gamarra
+    condicion_mascota_3 = (df_resultado["LINEA"] == "Mascotas") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Karla Solano") & (df_resultado["RV_VENDEDOR"] == "Jacky Gamarra")
+    df_resultado.loc[condicion_mascota_3, "RV_VENDEDOR"] = df_resultado["VENDEDOR"]
+    # 4 --> Karla Solano < Kristhian Rodriguez
+    condicion_mascota_4 = (df_resultado["LINEA"] == "Mascotas") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Karla Solano") & (df_resultado["RV_VENDEDOR"] == "Kristhian Rodriguez")
+    df_resultado.loc[condicion_mascota_4, "VENDEDOR"] = df_resultado["RV_VENDEDOR"]
+    # 5 --> Miguel Cabrera > Jacky Gamarra
+    condicion_mascota_5 = (df_resultado["LINEA"] == "Mascotas") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Miguel Cabrera") & (df_resultado["RV_VENDEDOR"] == "Jacky Gamarra")
+    df_resultado.loc[condicion_mascota_5, "RV_VENDEDOR"] = df_resultado["VENDEDOR"]
+
+    # Actualizar linea Oficina
+    # Jacky Gamarra < Wilmer Gamarra
+    condicion_oficina_1 = (df_resultado["LINEA"] == "Oficina") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Jacky Gamarra") & (df_resultado["RV_VENDEDOR"] == "Wilmer Gamarra")
+    df_resultado.loc[condicion_oficina_1, "VENDEDOR"] = df_resultado["RV_VENDEDOR"]
+    # Rogelio Gamarra > Jacky Gamarra
+    condicion_oficina_2 = (df_resultado["LINEA"] == "Oficina") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Rogelio Gamarra") & (df_resultado["RV_VENDEDOR"] == "Jacky Gamarra")
+    df_resultado.loc[condicion_oficina_2, "RV_VENDEDOR"] = df_resultado["VENDEDOR"]
+    # Wilmer Gamarra > all
+    condicion_oficina_3 = (df_resultado["LINEA"] == "Oficina") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Wilmer Gamarra") & ~(df_resultado["RV_VENDEDOR"] == "Wilmer Gamarra")
+    df_resultado.loc[condicion_oficina_3, "RV_VENDEDOR"] = df_resultado["VENDEDOR"]
+
+    # Actualizar columna CONFLICTO
+    df_resultado.loc[df_resultado["VENDEDOR"] == df_resultado["RV_VENDEDOR"], "CONFLICTO"] = "NO"
 
     return df_resultado

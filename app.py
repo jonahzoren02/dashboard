@@ -347,7 +347,9 @@ if not anios_disponibles:
 
 c_titulo, c_anio = st.columns([2, 1])
 with c_titulo:
-    st.markdown("<div class='card-title'>Resumen<br>ejecutivo</div>", unsafe_allow_html=True)
+    st.subheader(
+        "**Resumen ejecutivo**",
+        width="content")
 with c_anio:
     anio_sel = st.selectbox("Año", anios_disponibles, index=0, label_visibility="collapsed")
 

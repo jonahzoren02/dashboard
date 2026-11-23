@@ -1,3 +1,4 @@
+from streamlit.elements.lib.color_util import Color
 import os
 import pandas as pd
 import plotly.express as px
@@ -321,7 +322,12 @@ with col_u4:
 # -------------------------------------------------------------
 # 4. FILTRADO POR UNIDAD DE NEGOCIO
 # -------------------------------------------------------------
-df_filtrado_unidad = df_raw.copy()
+# Datos sin registros de ventas
+df_ventas = df_raw[
+    df_raw["RV_TOTAL"].notna()
+    & ~(df_raw["VENDEDOR"] == "NO REGISTRADO")
+]
+df_filtrado_unidad = df_ventas.copy()
 unidad_actual = st.session_state["unidad_negocio"]
 
 if unidad_actual == "Aves y Cerdos":
@@ -345,40 +351,47 @@ anios_disponibles = sorted(df_filtrado_unidad["AÑO"].dropna().unique().tolist()
 if not anios_disponibles:
     anios_disponibles = [2026]
 
-c_titulo, c_anio = st.columns([2, 1])
-with c_titulo:
+col_titulo, col_anio = st.columns([2, 1])
+with col_titulo:
     st.subheader(
-        "**Resumen ejecutivo**",
-        width="content")
-with c_anio:
+        "**Resumen anual**",
+        width="content"
+        )
+with col_anio:
     anio_sel = st.selectbox("Año", anios_disponibles, index=0, label_visibility="collapsed")
 
 # Filtrado por año seleccionado
-df_anio = df_filtrado_unidad[df_filtrado_unidad["AÑO"] == anio_sel]
+df_anio_curr = df_filtrado_unidad[df_filtrado_unidad["AÑO"] == anio_sel]
 
-# Datos del año anterior para calcular variaciones (%)
-anio_anterior = "2025"
-df_anio_ant = df_filtrado_unidad[df_filtrado_unidad["AÑO"] == anio_anterior]
+# Datos del año anterior para calcular comparaciones
+anio_prev = "2025"
+df_anio_prev = df_filtrado_unidad[df_filtrado_unidad["AÑO"] == anio_prev]
 
-# Métricas Calculadas - Cantidad
-total_volumen = df_anio["CANTIDAD"].sum()
-total_volumen_ant = df_anio_ant["CANTIDAD"].sum() if not df_anio_ant.empty else 0
+# Métricas Calculadas - Volumen de productos
+total_volumen = df_anio_curr["CANTIDAD"].sum()
+total_volumen_ant = df_anio_prev["CANTIDAD"].sum() if not df_anio_prev.empty else 0
 dif_volumen = total_volumen - total_volumen_ant
 
-# Métrica Calculadas - Ventas
-total_venta = df_anio["RV_TOTAL"].sum()
-total_venta_ant = df_anio_ant["RV_TOTAL"].sum() if not df_anio_ant.empty else 0
+# Métrica Calculadas - Ventas totales
+total_venta = df_anio_curr["RV_TOTAL"].sum()
+total_venta_ant = df_anio_prev["RV_TOTAL"].sum() if not df_anio_prev.empty else 0
 dif_venta = total_venta - total_venta_ant
 
-# Clientes activos en el período
-clientes_activos = df_anio["PARTNER"].nunique()
+# Métrica Calculadas - Cantidad de clientes
+partner_curr = df_anio_curr["PARTNER"].nunique()
+partner_prev = df_anio_prev["PARTNER"].nunique()
+partner_diff = partner_curr - partner_prev
+
+# Métrica Calculadas - Volumen de ventas
+sales_curr_vol = df_anio_curr["RV_TOTAL"].count()
+sales_prev_vol = df_anio_prev["RV_TOTAL"].count()
+sales_diff_vol = sales_curr_vol - sales_prev_vol
 
 # Cuadrícula 2x2 para las tarjetas de KPI
 kpi_c1, kpi_c2 = st.columns(2)
-
 with kpi_c1:
     st.metric(
-        "Venta total anual",
+        "Venta anual",
         f"S/ {total_venta:,.0f}",
         delta= f"S/ {dif_venta:,.0f}",
         # delta_arrow= "down",
@@ -386,11 +399,12 @@ with kpi_c1:
         border= True,
         # chart_data= [4,1,5,3,8,4,9,2,4,8,2,2],
         # chart_type= "area",
-        delta_description="vs. año anterior")
+        delta_description="vs. año anterior"
+        )
 
 with kpi_c2:
     st.metric(
-        "Cantidad total anual",
+        "Volumen anual",
         f"{total_volumen:,.0f} Und",
         delta= dif_volumen,
         # delta_arrow= "down",
@@ -398,33 +412,35 @@ with kpi_c2:
         border= True,
         # chart_data= [4,1,5,3,8,4,9,2,4,8,2,2],
         # chart_type= "area",
-        delta_description="vs. año anterior")
+        delta_description="vs. año anterior"
+        )
 
 kpi_c3, kpi_c4 = st.columns(2)
-
 with kpi_c3:
-    st.markdown(
-        f"""
-        <div>
-            <div class="kpi-title">Clientes activos</div>
-            <div class="kpi-value">{clientes_activos:,}</div>
-            <div class="kpi-sub-text">Compradores del período</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.metric(
+        "Cantidad de Partner",
+        f"{partner_curr:,.0f}",
+        delta= partner_diff,
+        # delta_arrow= "down",
+        icon= "💼",
+        border= True,
+        # chart_data= [4,1,5,3,8,4,9,2,4,8,2,2],
+        # chart_type= "area",
+        delta_description="vs. año anterior"
+        )
 
 with kpi_c4:
-    st.markdown(
-        """
-        <div>
-            <div class="kpi-title">Margen bruto</div>
-            <div class="kpi-value">15.6%</div>
-            <div class="kpi-sub-text">Rentabilidad comercial</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.metric(
+        "Cantidad de ventas",
+        f"{sales_curr_vol:,.0f}",
+        delta= sales_diff_vol,
+        # delta_arrow= "down",
+        icon= "🛒",
+        border= True,
+        # chart_data= [4,1,5,3,8,4,9,2,4,8,2,2],
+        # chart_type= "area",
+        delta_description="vs. año anterior"
+        )
 
 st.markdown("<hr style='margin: 25px 0 20px 0; border: 0; border-top: 1px solid #e2e8f0;'>", unsafe_allow_html=True)
 
@@ -434,7 +450,9 @@ st.markdown("<hr style='margin: 25px 0 20px 0; border: 0; border-top: 1px solid 
 c_ev_title, c_ev_switch = st.columns([2, 1])
 
 with c_ev_title:
-    st.markdown("<div style='font-size: 18px; font-weight: 700; color: #0f172a;'>Evolución de ventas</div>", unsafe_allow_html=True)
+    st.markdown(
+        "***Gráfico Anual por Venta o Volumen***"
+    )
 
 with c_ev_switch:
     # Selector de píldora interactivo Ventas vs Volumen
@@ -451,13 +469,13 @@ with c_ev_switch:
 
 # Agrupación por mes para el gráfico
 mes_cantidad = (
-    df_anio.groupby("MES", observed=True)["CANTIDAD"]
+    df_anio_curr.groupby("MES", observed=True)["CANTIDAD"]
     .sum()
     .reset_index()
 )
 
 mes_ventas = (
-    df_anio.groupby("MES", observed=True)["RV_TOTAL"]
+    df_anio_curr.groupby("MES", observed=True)["RV_TOTAL"]
     .sum()
     .reset_index()
 )
@@ -470,7 +488,6 @@ mes_cantidad = mes_cantidad.sort_values("MES_CAT")
 mes_ventas = mes_ventas.sort_values("MES_CAT")
 
 if modo_vista == "Ventas":
-    # Escala en miles de S/ (aprox. 300k - 600k como en la imagen)
     #mes_cantidad["VALOR_MOSTRADO"] = (mes_cantidad["CANTIDAD"] * 2.67) / 1000
     mes_cantidad["VALOR_MOSTRADO"] = mes_ventas["RV_TOTAL"]
     y_title = "Ventas (Miles S/.)"
@@ -489,6 +506,10 @@ fig_bar = go.Figure(
         go.Bar(
             x=mes_cantidad["MES"],
             y=mes_cantidad["VALOR_MOSTRADO"],
+            text=mes_cantidad["VALOR_MOSTRADO"] // 1000000 if modo_vista == "Ventas" else mes_cantidad["VALOR_MOSTRADO"],
+            textposition="outside",
+            texttemplate="S/ %{text:,.0f} M" if modo_vista == "Ventas" else "%{text:,.0f} U",
+            textfont=dict(color="black", size=12),
             marker_color=colores,
             marker_line_width=0,
             opacity=0.95,
@@ -520,30 +541,190 @@ fig_bar.update_layout(
 
 st.plotly_chart(fig_bar, use_container_width=True)
 
+
+# ------------------------------------------------------------
+# SECCION MENSUAL
+# ------------------------------------------------------------
+meses_anio_curr = [m for m in ORDEN_MESES if m in df_anio_curr["MES"].values]
+df_anio_curr["MES"] = pd.Categorical(df_anio_curr["MES"], categories=meses_anio_curr, ordered=True)
+
+mes_titulo_col,mes_sel_col = st.columns([2, 1])
+with mes_titulo_col:
+    st.subheader(
+        "**Resumen ejecutivo**",
+        width="content"
+        )
+with mes_sel_col:
+    mes_sel = st.selectbox("Mes", meses_anio_curr, index=0, label_visibility="collapsed")
+    if not mes_sel:
+        mes_sel = "Enero"
+
+indice_mes = ORDEN_MESES.index(mes_sel)
+mes_prev = ORDEN_MESES[indice_mes - 1]
+
+mes_subtitle_col,mes_comp_col = st.columns([2, 1])
+with mes_subtitle_col:
+    st.markdown(
+        "***Comparador***",
+        width="content"
+        )
+with mes_comp_col:
+    mes_comparador = st.segmented_control(
+        "Comparacion",
+        width="stretch",
+        options=["Mes anterior", "Año anterior"],
+        default="Mes anterior",
+        label_visibility="collapsed"
+    )
+    if not mes_comparador:
+        mes_comparador = "Mes anterior"
+
+df_mes_curr = df_anio_curr[df_anio_curr["MES"] == mes_sel]
+df_mes_prev = df_anio_curr[df_anio_curr["MES"] == mes_prev]
+df_mes_anio_prev = df_anio_prev[df_anio_prev["MES"] == mes_sel]
+if mes_sel == "Enero":
+    df_mes_prev = df_anio_prev[df_anio_prev["MES"] == mes_prev]
+
+sales_mes_curr = df_mes_curr["RV_TOTAL"].sum() # Mes seleccionado
+sales_mes_prev = df_mes_prev["RV_TOTAL"].sum() # Mes anterior al seleccionado
+sales_mes_anio_prev = df_mes_anio_prev["RV_TOTAL"].sum()
+
+volume_mes_curr = df_mes_curr["CANTIDAD"].sum()
+volume_mes_prev = df_mes_prev["CANTIDAD"].sum()
+volume_mes_anio_prev = df_mes_anio_prev["CANTIDAD"].sum()
+
+sales_mes_diff = sales_mes_curr - sales_mes_prev
+volume_mes_diff = volume_mes_curr - volume_mes_prev
+
+df_vendedores_mes = (
+    df_mes_curr.groupby("VENDEDOR", as_index=False)[["RV_TOTAL"]]
+    .sum()
+    .sort_values(by="RV_TOTAL", ascending=False)
+    .reset_index(drop=True)
+)
+df_productos_mes = (
+    df_mes_curr.groupby("PRODUCTO", as_index=False)[["CANTIDAD"]]
+    .sum()
+    .sort_values(by="CANTIDAD", ascending=False)
+    .reset_index(drop=True)
+)
+
+# PKI TOP VENDEDOR - PRODUCTO
+df_sales_top_mes = df_vendedores_mes.head(1)
+vendedor_top_mes = df_sales_top_mes["VENDEDOR"].iloc[0]
+venta_top_mes = df_sales_top_mes["RV_TOTAL"].iloc[0]
+df_volume_top_mes = df_productos_mes.head(1)
+producto_top_mes = df_volume_top_mes["PRODUCTO"].iloc[0]
+volume_top_mes = df_volume_top_mes["CANTIDAD"].iloc[0]
+
+if mes_comparador == "Año anterior":
+    sales_mes_diff = sales_mes_curr - sales_mes_anio_prev
+    volume_mes_diff = volume_mes_curr - volume_mes_anio_prev
+
+# Cuadrícula 2x2 para las tarjetas de KPI
+mes_kpi_col1, mes_kpi_col2 = st.columns(2)
+with mes_kpi_col1:
+    st.metric(
+        "Venta mensual",
+        f"S/ {sales_mes_curr:,.0f}",
+        delta= f"S/ {sales_mes_diff:,.0f}",
+        delta_arrow= "up" if sales_mes_diff > 0 else "down",
+        delta_color= "green" if sales_mes_diff > 0 else "red",
+        icon= "💸",
+        border= True,
+        # chart_data= [4,1,5,3,8,4,9,2,4,8,2,2],
+        # chart_type= "area",
+        delta_description="vs. año anterior" if mes_comparador == "Año anterior" else "vs. mes anterior"
+        )
+with mes_kpi_col2:
+    st.metric(
+        "Volumen mensual",
+        f"{volume_mes_curr:,.0f} Und",
+        delta= volume_mes_diff,
+        # delta_arrow= "down",
+        icon= "🚀",
+        border= True,
+        # chart_data= [4,1,5,3,8,4,9,2,4,8,2,2],
+        # chart_type= "area",
+        delta_description="vs. año anterior" if mes_comparador == "Año anterior" else "vs. mes anterior"
+        )
+
+# Cuadrícula 2x2 para las tarjetas de KPI
+mes_kpi_col3, mes_kpi_col4 = st.columns(2)
+with mes_kpi_col3:
+    st.metric(
+        "Vendedor Top",
+        f"S/ {venta_top_mes:,.2f}",
+        # delta= f"S/ {sales_mes_diff:,.0f}",
+        # delta_arrow= "up" if sales_mes_diff > 0 else "down",
+        # delta_color= "green" if sales_mes_diff > 0 else "red",
+        icon= "🧑‍💼",
+        border= True,
+        # chart_data= [4,1,5,3,8,4,9,2,4,8,2,2],
+        # chart_type= "area",
+        delta_description=vendedor_top_mes
+        )
+with mes_kpi_col4:
+    st.metric(
+        "Producto Top",
+        f"{volume_top_mes:,.0f} Und",
+        # delta= volume_mes_diff,
+        # delta_arrow= "down",
+        icon= "🏆",
+        border= True,
+        # chart_data= [4,1,5,3,8,4,9,2,4,8,2,2],
+        # chart_type= "area",
+        delta_description=producto_top_mes
+        )
+
 # -------------------------------------------------------------
-# 7. SECCIÓN ADICIONAL: RANKINGS Y DETALLE
+# SECCIÓN ADICIONAL: RANKINGS Y DETALLE
 # -------------------------------------------------------------
 with st.expander("📊 Ver Top Vendedores y Productos de la Unidad Seleccionada"):
     t_v1, t_v2 = st.columns(2)
     with t_v1:
         st.subheader("🏆 Top Vendedores")
         top_v = (
-            df_anio.groupby("VENDEDOR")["CANTIDAD"]
+            df_anio_curr.groupby("VENDEDOR")["CANTIDAD"]
             .sum()
             .reset_index()
             .sort_values(by="CANTIDAD", ascending=False)
             .head(10)
         )
-        st.dataframe(top_v, use_container_width=True, hide_index=True)
+        st.dataframe(top_v.style.format({"CANTIDAD": '{:,.0f} und'}), use_container_width=True, hide_index=True)
 
     with t_v2:
         st.subheader("📦 Top Productos")
-        col_prod = "PRODUCTO" if "PRODUCTO" in df_anio.columns else "PRESENTACION"
+        col_prod = "PRODUCTO" if "PRODUCTO" in df_anio_curr.columns else "PRESENTACION"
         top_p = (
-            df_anio.groupby(col_prod)["CANTIDAD"]
+            df_anio_curr.groupby(col_prod)["CANTIDAD"]
             .sum()
             .reset_index()
             .sort_values(by="CANTIDAD", ascending=False)
             .head(10)
         )
         st.dataframe(top_p, use_container_width=True, hide_index=True)
+
+    t2_v1, t2_v2 = st.columns(2)
+    with t2_v1:
+        st.subheader("🏆 Top Vendedores (S/)")
+        top1_v = (
+            df_anio_curr.groupby("VENDEDOR")["RV_TOTAL"]
+            .sum()
+            .reset_index()
+            .sort_values(by="RV_TOTAL", ascending=False)
+            .head(10)
+        )
+        st.dataframe(top1_v.style.format({"RV_TOTAL": 'S/ {:,.0f}'}), use_container_width=True, hide_index=True)
+
+    with t2_v2:
+        st.subheader("📦 Top Presentacion")
+        # col_prod = "PRODUCTO" if "PRODUCTO" in df_anio_curr.columns else "PRESENTACION"
+        top2_p = (
+            df_anio_curr.groupby("PRESENTACION")["CANTIDAD"]
+            .sum()
+            .reset_index()
+            .sort_values(by="CANTIDAD", ascending=False)
+            .head(10)
+        )
+        st.dataframe(top2_p, width="stretch", hide_index=True)

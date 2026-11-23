@@ -103,19 +103,26 @@ def crear_grupo_linea(vendedor):
         "Nicolh Boza": "Aves & Cerdos",
         "Ubaldo Torreblanca": "Aves & Cerdos",
         "Willy Chihua": "Aves & Cerdos",
+        "Andrea Huauya": "Aves & Cerdos",
         "Antenor Culqui": "Ganadería",
         "Luis Puluche": "Ganadería",
         "Max Reategui": "Ganadería",
         "Yalilhe Espinoza": "Ganadería",
+        "Alina Escobal": "Ganadería",
         "Eglys Bermudez": "Mascotas",
         "Karla Solano": "Mascotas",
         "Miguel Cabrera": "Mascotas",
         "Omar Tenaud": "Mascotas",
+        "Kristhian Rodriguez": "Mascotas",
+        "Vanessa Aguilar": "Mascotas",
+        "Jean Pachas": "Mascotas",
+        "Cynthia Alzamora": "Mascotas",
         "Jacky Gamarra": "Oficina",
         "Kely Espinoza": "Oficina",
         "Nimia Quispe": "Oficina",
         "Rogelio Gamarra": "Oficina",
         "Wilmer Gamarra": "Oficina",
+        "Talissa Pérez": "Oficina",
         "NO REGISTRADO": "SIN LINEA"
     }
 
@@ -220,27 +227,19 @@ def enviar_data():
     # df_rv_2025.columns = df_rv_2025.columns.str.strip().str.upper()
     # df_rv_2026.columns = df_rv_2026.columns.str.strip().str.upper()
 
-    # Crear el nuevo grupo de PRODUCTOS(FAMILIA) y LINEA
-    columna_producto = df_entrada["PRESENTACION"].apply(crear_grupo_producto)
-    columna_linea = df_entrada["VENDEDOR"].apply(crear_grupo_linea)
-
     # Crear el nuevo grupo de COMPROBANTE
     col_serie = df_entrada["SERIE"].str.strip()
     col_numero = df_entrada["NUMERO"].str.strip()
     condicion_comprobante = (col_serie == '-') & (col_numero == '-')
     columna_comprobante = np.where(condicion_comprobante, '-', col_serie + '-' + col_numero )
 
-    # Insertar la columna nueva de producto al costado de PRESENTACION y VENDEDOR
-    loc_presentacion = df_entrada.columns.get_loc("PRESENTACION")
-    loc_vendedor = df_entrada.columns.get_loc("VENDEDOR")
-    loc_numero = df_entrada.columns.get_loc("NUMERO")
-    df_entrada.insert(columna_despues(loc_presentacion), "PRODUCTO", columna_producto)
-    df_entrada.insert(columna_despues(loc_vendedor), "LINEA", columna_linea)
-    df_entrada.insert(columna_despues(loc_numero), "COMPROBANTE", columna_comprobante)
-
     # Concatenar los reportes de ventas (2025 y 2026) en una sola tabla vertical
     df_rv = pd.concat([df_rv_2025, df_rv_2026], ignore_index=True)
     df_rv = df_rv.drop_duplicates(subset=["RV_NUMERO"])
+
+    # Insertar la columna COMPROBANTE
+    loc_numero = df_entrada.columns.get_loc("NUMERO")
+    df_entrada.insert(columna_despues(loc_numero), "COMPROBANTE", columna_comprobante)
 
     # Realizar un único merge con el archivo principal (agrega solo 4 columnas limpias)
     df_resultado = pd.merge(
@@ -264,58 +263,70 @@ def enviar_data():
     # VENDEDOR --- RV_VENDEDOR
     # Actualizar linea Aves & Cerdos
     # 1 --> Maria Alemán < Nicolh Boza
-    condicion_ac_1 = (df_resultado["LINEA"] == "Aves & Cerdos") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Maria Alemán") & (df_resultado["RV_VENDEDOR"] == "Nicolh Boza")
+    condicion_ac_1 = (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Maria Alemán") & (df_resultado["RV_VENDEDOR"] == "Nicolh Boza")
     df_resultado.loc[condicion_ac_1, "VENDEDOR"] = df_resultado["RV_VENDEDOR"]
     # 2 --> Felipe Morillos < Ubaldo Torreblanca
-    condicion_ac_2 = (df_resultado["LINEA"] == "Aves & Cerdos") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Felipe Morillos") & (df_resultado["RV_VENDEDOR"] == "Ubaldo Torreblanca")
+    condicion_ac_2 = (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Felipe Morillos") & (df_resultado["RV_VENDEDOR"] == "Ubaldo Torreblanca")
     df_resultado.loc[condicion_ac_2, "VENDEDOR"] = df_resultado["RV_VENDEDOR"]
     # 3 --> Milagros Huaringa < Melissa Garriazo
-    condicion_ac_3 = (df_resultado["LINEA"] == "Aves & Cerdos") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Milagros Huaringa") & (df_resultado["RV_VENDEDOR"] == "Melissa Garriazo")
+    condicion_ac_3 = (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Milagros Huaringa") & (df_resultado["RV_VENDEDOR"] == "Melissa Garriazo")
     df_resultado.loc[condicion_ac_3, "VENDEDOR"] = df_resultado["RV_VENDEDOR"]
     # 4 --> Ubaldo Torreblanca > Miguel Cabrera
-    condicion_ac_4 = (df_resultado["LINEA"] == "Aves & Cerdos") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Ubaldo Torreblanca") & (df_resultado["RV_VENDEDOR"] == "Miguel Cabrera")
+    condicion_ac_4 = (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Ubaldo Torreblanca") & (df_resultado["RV_VENDEDOR"] == "Miguel Cabrera")
     df_resultado.loc[condicion_ac_4, "RV_VENDEDOR"] = df_resultado["VENDEDOR"]
     # 5 --> Melissa Garriazo > all
-    condicion_ac_5 = (df_resultado["LINEA"] == "Aves & Cerdos") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Melissa Garriazo") & ~(df_resultado["RV_VENDEDOR"] == "Melissa Garriazo")
+    condicion_ac_5 = (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Melissa Garriazo") & ~(df_resultado["RV_VENDEDOR"] == "Melissa Garriazo")
     df_resultado.loc[condicion_ac_5, "RV_VENDEDOR"] = df_resultado["VENDEDOR"]
     # 6 --> Milagros Huaringa < Andrea Huauya
-    condicion_ac_6 = (df_resultado["LINEA"] == "Aves & Cerdos") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Milagros Huaringa") & (df_resultado["RV_VENDEDOR"] == "Andrea Huauya")
+    condicion_ac_6 = (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Milagros Huaringa") & (df_resultado["RV_VENDEDOR"] == "Andrea Huauya")
     df_resultado.loc[condicion_ac_6, "VENDEDOR"] = df_resultado["RV_VENDEDOR"]
 
     # Actualizar linea Ganadería
     # 1 --> Antenor Culqui > all
-    condicion_ganaderia_1 = (df_resultado["LINEA"] == "Ganadería") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Antenor Culqui") & ~(df_resultado["RV_VENDEDOR"] == "Antenor Culqui")
+    condicion_ganaderia_1 = (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Antenor Culqui") & ~(df_resultado["RV_VENDEDOR"] == "Antenor Culqui")
     df_resultado.loc[condicion_ganaderia_1, "RV_VENDEDOR"] = df_resultado["VENDEDOR"]
 
     # Actualizar linea Mascotas
     # 1 --> Eglys Bermudez < Karla Solano
-    condicion_mascota_1 = (df_resultado["LINEA"] == "Mascotas") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Eglys Bermudez") & (df_resultado["RV_VENDEDOR"] == "Karla Solano")
+    condicion_mascota_1 = (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Eglys Bermudez") & (df_resultado["RV_VENDEDOR"] == "Karla Solano")
     df_resultado.loc[condicion_mascota_1, "VENDEDOR"] = df_resultado["RV_VENDEDOR"]
     # 2 --> Eglys Bermudez > Nimia Quispe
-    condicion_mascota_2 = (df_resultado["LINEA"] == "Mascotas") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Eglys Bermudez") & (df_resultado["RV_VENDEDOR"] == "Nimia Quispe")
+    condicion_mascota_2 = (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Eglys Bermudez") & (df_resultado["RV_VENDEDOR"] == "Nimia Quispe")
     df_resultado.loc[condicion_mascota_2, "RV_VENDEDOR"] = df_resultado["VENDEDOR"]
     # 3 --> Karla Solano > Jacky Gamarra
-    condicion_mascota_3 = (df_resultado["LINEA"] == "Mascotas") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Karla Solano") & (df_resultado["RV_VENDEDOR"] == "Jacky Gamarra")
+    condicion_mascota_3 = (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Karla Solano") & (df_resultado["RV_VENDEDOR"] == "Jacky Gamarra")
     df_resultado.loc[condicion_mascota_3, "RV_VENDEDOR"] = df_resultado["VENDEDOR"]
     # 4 --> Karla Solano < Kristhian Rodriguez
-    condicion_mascota_4 = (df_resultado["LINEA"] == "Mascotas") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Karla Solano") & (df_resultado["RV_VENDEDOR"] == "Kristhian Rodriguez")
+    condicion_mascota_4 = (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Karla Solano") & (df_resultado["RV_VENDEDOR"] == "Kristhian Rodriguez")
     df_resultado.loc[condicion_mascota_4, "VENDEDOR"] = df_resultado["RV_VENDEDOR"]
     # 5 --> Miguel Cabrera > Jacky Gamarra
-    condicion_mascota_5 = (df_resultado["LINEA"] == "Mascotas") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Miguel Cabrera") & (df_resultado["RV_VENDEDOR"] == "Jacky Gamarra")
+    condicion_mascota_5 = (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Miguel Cabrera") & (df_resultado["RV_VENDEDOR"] == "Jacky Gamarra")
     df_resultado.loc[condicion_mascota_5, "RV_VENDEDOR"] = df_resultado["VENDEDOR"]
 
     # Actualizar linea Oficina
     # Jacky Gamarra < Wilmer Gamarra
-    condicion_oficina_1 = (df_resultado["LINEA"] == "Oficina") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Jacky Gamarra") & (df_resultado["RV_VENDEDOR"] == "Wilmer Gamarra")
+    condicion_oficina_1 = (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Jacky Gamarra") & (df_resultado["RV_VENDEDOR"] == "Wilmer Gamarra")
     df_resultado.loc[condicion_oficina_1, "VENDEDOR"] = df_resultado["RV_VENDEDOR"]
     # Rogelio Gamarra > Jacky Gamarra
-    condicion_oficina_2 = (df_resultado["LINEA"] == "Oficina") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Rogelio Gamarra") & (df_resultado["RV_VENDEDOR"] == "Jacky Gamarra")
+    condicion_oficina_2 = (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Rogelio Gamarra") & (df_resultado["RV_VENDEDOR"] == "Jacky Gamarra")
     df_resultado.loc[condicion_oficina_2, "RV_VENDEDOR"] = df_resultado["VENDEDOR"]
     # Wilmer Gamarra > all
-    condicion_oficina_3 = (df_resultado["LINEA"] == "Oficina") & (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Wilmer Gamarra") & ~(df_resultado["RV_VENDEDOR"] == "Wilmer Gamarra")
+    condicion_oficina_3 = (df_resultado["CONFLICTO"] == "SI") & (df_resultado["VENDEDOR"] == "Wilmer Gamarra") & ~(df_resultado["RV_VENDEDOR"] == "Wilmer Gamarra")
     df_resultado.loc[condicion_oficina_3, "RV_VENDEDOR"] = df_resultado["VENDEDOR"]
 
     # Actualizar columna CONFLICTO
     df_resultado.loc[df_resultado["VENDEDOR"] == df_resultado["RV_VENDEDOR"], "CONFLICTO"] = "NO"
 
+    # Crear el nuevo grupo de PRODUCTOS(FAMILIA) y LINEA
+    columna_producto = df_resultado["PRESENTACION"].apply(crear_grupo_producto)
+    columna_linea = df_resultado["VENDEDOR"].apply(crear_grupo_linea)
+
+    # Insertar la columna nueva de producto al costado de PRESENTACION y VENDEDOR
+    loc_presentacion = df_resultado.columns.get_loc("PRESENTACION")
+    loc_vendedor = df_resultado.columns.get_loc("VENDEDOR")
+    df_resultado.insert(columna_despues(loc_presentacion), "PRODUCTO", columna_producto)
+    df_resultado.insert(columna_despues(loc_vendedor), "LINEA", columna_linea)
+
     return df_resultado
+
+crear_excel()

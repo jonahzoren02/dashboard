@@ -175,6 +175,7 @@ def enviar_data():
     columnas_rv = [
         "Nombre del contacto a mostrar en la factura",
         "Número",
+        "Fecha de factura",
         "TOTAL",
         "Vendedor"
     ]
@@ -194,6 +195,7 @@ def enviar_data():
     tipos_rv = {
         'Nombre del contacto a mostrar en la factura': str,
         'Número': str,
+        #'Fecha de factura': str,
         'TOTAL': float,
         'Vendedor': str
     }
@@ -208,14 +210,31 @@ def enviar_data():
     nuevo_nombre_rv = {
         "Nombre del contacto a mostrar en la factura": "RV_PARTNER",
         "Número": "RV_NUMERO",
+        "Fecha de factura": "RV_FECHA_FACT",
         "TOTAL": "RV_TOTAL",
         "Vendedor": "RV_VENDEDOR"
     }
 
     # Cargar solo los datos necesarios(los encabezados reales están en la fila 2 del Excel)
-    df_entrada = pd.read_excel(archivo_entrada, header=1, usecols=columnas_entrada, dtype=tipos_entrada)
-    df_rv_2025 = pd.read_excel(archivo_rv_2025, usecols=columnas_rv, dtype=tipos_rv)
-    df_rv_2026 = pd.read_excel(archivo_rv_2026, usecols=columnas_rv, dtype=tipos_rv)
+    df_entrada = pd.read_excel(
+        archivo_entrada, header=1,
+        usecols=columnas_entrada,
+        dtype=tipos_entrada,
+        )
+    df_rv_2025 = pd.read_excel(
+        archivo_rv_2025,
+        usecols=columnas_rv,
+        dtype=tipos_rv,
+        parse_dates=["Fecha de factura"],
+        date_format="%d/%m/%Y",
+        )
+    df_rv_2026 = pd.read_excel(
+        archivo_rv_2026,
+        usecols=columnas_rv,
+        dtype=tipos_rv,
+        parse_dates=["Fecha de factura"],
+        date_format="%d/%m/%Y",
+        )
 
     # Renombrar las columnas (es necesario reasignar las variables)
     df_entrada = df_entrada.rename(columns=nuevo_nombre_entrada)
@@ -329,4 +348,6 @@ def enviar_data():
 
     return df_resultado
 
-crear_excel()
+if __name__ == "__main__":
+    crear_excel()
+    #print(enviar_data().columns.tolist())

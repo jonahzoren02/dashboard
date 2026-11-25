@@ -1,13 +1,16 @@
 from streamlit.elements.lib.color_util import Color
 import os
+import importlib
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+import dataPrincipal
+importlib.reload(dataPrincipal)
 from dataPrincipal import enviar_data
 
 def imprimir_data(*args):
-    n = 1
+    n = 10
     print("-------INFORMACION-------")
     for ele in args:
         print("###ELemento ", n)
@@ -232,9 +235,9 @@ PALETA_MESES = {
 }
 
 
-# Carga de datos con auto-invalidación de caché si el archivo cambia
+# Carga de datos con auto-invalidación de caché si dataPrincipal.py cambia
 @st.cache_data
-def cargar_datos():
+def cargar_datos_v3(mtime=0):
     df = enviar_data()
 
     # Convertir mes a categórico ordenado
@@ -244,8 +247,11 @@ def cargar_datos():
 
     return df
 
+# Detectar cambios en dataPrincipal.py para invalidar caché automáticamente
+mtime_principal = os.path.getmtime("dataPrincipal.py") if os.path.exists("dataPrincipal.py") else 0
+
 with st.spinner("Cargando tablero LABET..."):
-    df_raw = cargar_datos()
+    df_raw = cargar_datos_v3(mtime_principal)
 
 # Inicializar estado de sesión para Unidad de Negocio si no existe
 if "unidad_negocio" not in st.session_state:
@@ -539,7 +545,7 @@ fig_bar.update_layout(
     showlegend=False,
 )
 
-st.plotly_chart(fig_bar, use_container_width=True)
+st.plotly_chart(fig_bar, width='content')
 
 
 # ------------------------------------------------------------
@@ -691,7 +697,7 @@ with st.expander("📊 Ver Top Vendedores y Productos de la Unidad Seleccionada"
             .sort_values(by="CANTIDAD", ascending=False)
             .head(10)
         )
-        st.dataframe(top_v.style.format({"CANTIDAD": '{:,.0f} und'}), use_container_width=True, hide_index=True)
+        st.dataframe(top_v.style.format({"CANTIDAD": '{:,.0f} und'}), width='content', hide_index=True)
 
     with t_v2:
         st.subheader("📦 Top Productos")
@@ -703,7 +709,7 @@ with st.expander("📊 Ver Top Vendedores y Productos de la Unidad Seleccionada"
             .sort_values(by="CANTIDAD", ascending=False)
             .head(10)
         )
-        st.dataframe(top_p, use_container_width=True, hide_index=True)
+        st.dataframe(top_p, width='content', hide_index=True)
 
     t2_v1, t2_v2 = st.columns(2)
     with t2_v1:
@@ -715,7 +721,7 @@ with st.expander("📊 Ver Top Vendedores y Productos de la Unidad Seleccionada"
             .sort_values(by="RV_TOTAL", ascending=False)
             .head(10)
         )
-        st.dataframe(top1_v.style.format({"RV_TOTAL": 'S/ {:,.0f}'}), use_container_width=True, hide_index=True)
+        st.dataframe(top1_v.style.format({"RV_TOTAL": 'S/ {:,.0f}'}), width='content', hide_index=True)
 
     with t2_v2:
         st.subheader("📦 Top Presentacion")
@@ -728,3 +734,62 @@ with st.expander("📊 Ver Top Vendedores y Productos de la Unidad Seleccionada"
             .head(10)
         )
         st.dataframe(top2_p, width="stretch", hide_index=True)
+
+
+def calculate_days_delay(partner_proc):
+
+    # Preparar informacion
+    df_partners = df_anio_curr[df_anio_curr["PARTNER"] == partner_proc].reset_index()
+    ORDEN_MESES.reverse()
+    #df_partner["MES"] = pd.Categorical(df_partner["MES"], categories=ORDEN_MESES, ordered=True)
+    df_partners_ord = df_partners.sort_values(by="RV_FECHA_FACT", ascending=False).reset_index()
+    # Columnas = ['level_0', 'index', 'MES', 'AÑO', 'SERIE', 'NUMERO', 'COMPROBANTE', 'PARTNER', 'PRESENTACION', 'PRODUCTO', 'UNIDAD', 'CANTIDAD', 'LINEA', 'VENDEDOR', 'RV_PARTNER', 'RV_NUMERO', 'RV_TOTAL', 'RV_VENDEDOR']
+    col_list_drop =["SERIE", "NUMERO", "COMPROBANTE", "PRESENTACION", "UNIDAD", "CANTIDAD", "LINEA", "RV_NUMERO", "RV_VENDEDOR", "CONFLICTO"]
+    df_partners_ord = df_partners_ord.drop(columns=col_list_drop)
+
+    # Procesar y calcular variables
+    purchases_n_total = df_partners_ord["RV_TOTAL"].count()
+    purchases_date_list = pd.Series(pd.to_datetime(df_partners_ord["RV_FECHA_FACT"])).dropna()
+    purchase_date_last = max(purchases_date_list)
+    purchase_date_first = min(purchases_date_list)
+    if len(purchases_date_list) > 1 and purchases_n_total > 1:
+        purchases_freq = (purchase_date_last - purchase_date_first).days / (purchases_n_total - 1)
+    else:
+        purchases_freq = 0
+    purchases_delta_freq = pd.Timedelta(days=float(purchases_freq))
+    date_now = pd.Timestamp.today()
+    purchase_date_next = max(purchases_date_list) + purchases_delta_freq
+    purchase_days_delay = (date_now - purchase_date_next).days
+    purchase_date_last = purchase_date_last.strftime("%d-%b-%Y")
+    purchase_date_next = purchase_date_next.strftime("%d-%b-%Y")
+    return abs(purchase_days_delay), purchase_date_last, purchase_date_next, round(purchases_freq), purchases_n_total
+
+partner_list = df_anio_curr["PARTNER"].unique().tolist()
+purchase_dates_delay_list = []
+purchase_date_last_list = []
+purchase_date_next_list = []
+purchase_prom_list = []
+purchase_amount_list = []
+
+for p in partner_list:
+    days_calculated, purchase_last, purchase_next, purchse_prom, purchase_amount = calculate_days_delay(p)
+    purchase_dates_delay_list.append(days_calculated)
+    purchase_date_last_list.append(purchase_last)
+    purchase_date_next_list.append(purchase_next)
+    purchase_prom_list.append(purchse_prom)
+    purchase_amount_list.append(purchase_amount)
+
+df_purchase_days_delay = pd.DataFrame({
+    "PARTNER": partner_list,
+    "RATIO": purchase_prom_list,
+    "COMPRAS": purchase_amount_list,
+    "ULTIMA": purchase_date_last_list,
+    "PROXIMA": purchase_date_next_list,
+    "RETRASO": purchase_dates_delay_list
+})
+
+#df_purchase_days_delay = df_purchase_days_delay.drop(columns=["level_0"])
+df_purchase_days_delay = df_purchase_days_delay.sort_values(by="RETRASO", ascending=False).reset_index(drop=True)
+imprimir_data(df_purchase_days_delay)
+
+st.write(df_purchase_days_delay)
